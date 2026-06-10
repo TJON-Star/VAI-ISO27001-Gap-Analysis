@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAI — ISO 27001:2022 Compliance Gap Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #f0f4fa;
+  --surface: #ffffff;
+  --surface2: #f7f9fc;
+  --border: rgba(0,0,0,0.08);
+  --text: #1a2035;
+  --muted: #6b7a99;
+  --implemented: #2e7d5e;
+  --partial: #d4860a;
+  --gap: #c0392b;
+  --accent: #1e4fc2;
+  --org: #7c3aed;
+  --people: #0891b2;
+  --physical: #d97706;
+  --tech: #1e4fc2;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.5; }
+.page { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, #1a2a6c 0%, #1e4fc2 60%, #2e7d9e 100%);
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  color: #fff;
+}
+.org-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.dash-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.dash-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 5px; }
+.header-badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.hbadge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+}
+
+/* FILTER BAR */
+.filter-bar {
+  display: flex; gap: 10px; margin-bottom: 18px;
+  align-items: center; flex-wrap: wrap;
+  background: var(--surface); border-radius: 10px;
+  padding: 10px 16px; border: 1px solid var(--border);
+}
+.filter-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+select {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: 11px; padding: 5px 10px;
+  border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; outline: none;
+}
+select:focus { border-color: var(--accent); }
+.filter-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); margin-left: 4px; }
+
+/* KPI ROW */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 18px; }
+.kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+  position: relative; overflow: hidden;
+}
+.kpi::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 0; right: 0; height: 3px;
+}
+.kpi-impl::after { background: var(--implemented); }
+.kpi-partial::after { background: var(--partial); }
+.kpi-gap::after { background: var(--gap); }
+.kpi-score::after { background: var(--accent); }
+.kpi-coverage::after { background: var(--org); }
+.kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+.kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+.kpi-sub { font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+/* GRID LAYOUTS */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px;
+}
+.card-title {
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 14px; font-family: 'JetBrains Mono', monospace;
+}
+.chart-wrap { position: relative; width: 100%; }
+
+/* THEME CARDS */
+.theme-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px;
+  border-top: 3px solid transparent;
+}
+.theme-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+.theme-score { font-size: 32px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+.theme-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+.progress-bar { height: 5px; background: var(--bg); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; }
+
+/* LEGEND */
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.leg-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* CONTROL TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+th {
+  text-align: left; padding: 8px 10px; color: var(--muted);
+  font-weight: 600; border-bottom: 1px solid var(--border);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  background: var(--surface2);
+}
+td { padding: 8px 10px; border-bottom: 1px solid rgba(0,0,0,0.04); vertical-align: middle; }
+tr:hover td { background: #f5f8ff; }
+.ctrl-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); white-space: nowrap; font-weight: 500; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+.b-impl { background: #e8f5ef; color: #1a6644; border: 1px solid #b8dece; }
+.b-partial { background: #fef3e2; color: #92580a; border: 1px solid #f5d9a0; }
+.b-gap { background: #fdecea; color: #8b1a14; border: 1px solid #f5b8b4; }
+.b-org { background: #f3e8ff; color: #5b21b6; border: 1px solid #ddd6fe; }
+.b-people { background: #e0f7fa; color: #0e6e85; border: 1px solid #b2ebf2; }
+.b-physical { background: #fff8e1; color: #8a5800; border: 1px solid #ffe082; }
+.b-tech { background: #e8eeff; color: #1e3fa8; border: 1px solid #c3cff7; }
+.priority-high { color: var(--gap); font-weight: 600; font-size: 10px; }
+.priority-med { color: var(--partial); font-weight: 600; font-size: 10px; }
+.priority-low { color: var(--implemented); font-weight: 600; font-size: 10px; }
+
+/* RECOMMENDATION CARDS */
+.rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rec-card {
+  background: var(--surface2); border-radius: 8px;
+  padding: 12px 14px; border-left: 3px solid transparent;
+}
+.rec-title { font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+.rec-body { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.rec-tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; margin-top: 6px; }
+
+/* FOOTER */
+.footer {
+  margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.footer-left { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.footer-right { font-size: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="org-tag">VAI // Victor Akinode Initiatives // AWS Digital Learning Platform</div>
+      <div class="dash-title">ISO 27001:2022 Compliance Gap Analysis</div>
+      <div class="dash-sub">Control coverage assessment across 4 themes · 93 controls · Pre-partner onboarding audit · February 2026</div>
+    </div>
+    <div class="header-badges">
+      <span class="hbadge">ISO 27001:2022</span>
+      <span class="hbadge">NIST CSF</span>
+      <span class="hbadge">GRC Analyst: Taiwo Johnson</span>
+      <span class="hbadge">Confidential</span>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <span class="filter-label">filter:</span>
+    <select id="fTheme" onchange="applyFilters()">
+      <option value="All">all themes</option>
+      <option value="Organisational">organisational (A.5)</option>
+      <option value="People">people (A.6)</option>
+      <option value="Physical">physical (A.7)</option>
+      <option value="Technological">technological (A.8)</option>
+    </select>
+    <select id="fStatus" onchange="applyFilters()">
+      <option value="All">all statuses</option>
+      <option value="Implemented">implemented</option>
+      <option value="Partial">partial</option>
+      <option value="Gap">gap</option>
+    </select>
+    <select id="fPriority" onchange="applyFilters()">
+      <option value="All">all priorities</option>
+      <option value="High">high priority</option>
+      <option value="Medium">medium priority</option>
+      <option value="Low">low priority</option>
+    </select>
+    <span class="filter-count" id="fCount">15 controls assessed</span>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi kpi-impl">
+      <div class="kpi-label">Implemented</div>
+      <div class="kpi-value" id="kImpl" style="color:var(--implemented);">5</div>
+      <div class="kpi-sub">controls fully in place</div>
+    </div>
+    <div class="kpi kpi-partial">
+      <div class="kpi-label">Partial</div>
+      <div class="kpi-value" id="kPartial" style="color:var(--partial);">4</div>
+      <div class="kpi-sub">controls partially met</div>
+    </div>
+    <div class="kpi kpi-gap">
+      <div class="kpi-label">Gaps</div>
+      <div class="kpi-value" id="kGap" style="color:var(--gap);">6</div>
+      <div class="kpi-sub">controls not in place</div>
+    </div>
+    <div class="kpi kpi-score">
+      <div class="kpi-label">Overall Score</div>
+      <div class="kpi-value" style="color:var(--accent);">47%</div>
+      <div class="kpi-sub">compliance coverage</div>
+    </div>
+    <div class="kpi kpi-coverage">
+      <div class="kpi-label">Partner Ready</div>
+      <div class="kpi-value" style="color:var(--gap);">No</div>
+      <div class="kpi-sub">14–30 day remediation needed</div>
+    </div>
+  </div>
+
+  <!-- THEME SCORE CARDS -->
+  <div class="grid-4" style="margin-bottom:14px;">
+    <div class="theme-card" style="border-top-color:var(--org);">
+      <div class="theme-label" style="color:var(--org);">Organisational (A.5)</div>
+      <div class="theme-score" style="color:var(--org);">42%</div>
+      <div class="theme-sub">5 of 12 relevant controls covered</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:42%;background:var(--org);"></div></div>
+    </div>
+    <div class="theme-card" style="border-top-color:var(--people);">
+      <div class="theme-label" style="color:var(--people);">People (A.6)</div>
+      <div class="theme-score" style="color:var(--people);">60%</div>
+      <div class="theme-sub">3 of 5 relevant controls covered</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:60%;background:var(--people);"></div></div>
+    </div>
+    <div class="theme-card" style="border-top-color:var(--physical);">
+      <div class="theme-label" style="color:var(--physical);">Physical (A.7)</div>
+      <div class="theme-score" style="color:var(--physical);">33%</div>
+      <div class="theme-sub">1 of 3 relevant controls covered</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:33%;background:var(--physical);"></div></div>
+    </div>
+    <div class="theme-card" style="border-top-color:var(--tech);">
+      <div class="theme-label" style="color:var(--tech);">Technological (A.8)</div>
+      <div class="theme-score" style="color:var(--tech);">50%</div>
+      <div class="theme-sub">5 of 10 relevant controls covered</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:50%;background:var(--tech);"></div></div>
+    </div>
+  </div>
+
+  <!-- RADAR + STATUS BAR -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Compliance Coverage Radar — by Theme</div>
+      <div class="legend">
+        <span class="leg"><span class="leg-dot" style="background:var(--accent);"></span>Current Coverage</span>
+        <span class="leg"><span class="leg-dot" style="background:rgba(0,0,0,0.15);"></span>Target (100%)</span>
+      </div>
+      <div class="chart-wrap" style="height:260px;"><canvas id="radarChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Control Status by Theme</div>
+      <div class="legend">
+        <span class="leg"><span class="leg-sq" style="background:var(--implemented);"></span>Implemented</span>
+        <span class="leg"><span class="leg-sq" style="background:var(--partial);"></span>Partial</span>
+        <span class="leg"><span class="leg-sq" style="background:var(--gap);"></span>Gap</span>
+      </div>
+      <div class="chart-wrap" style="height:270px;"><canvas id="stackedBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- GAP PRIORITY + COVERAGE DONUT -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Gap Priority Distribution</div>
+      <div class="legend">
+        <span class="leg"><span class="leg-dot" style="background:var(--gap);"></span>High (4)</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--partial);"></span>Medium (2)</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--implemented);"></span>Low (0)</span>
+      </div>
+      <div class="chart-wrap" style="height:185px;"><canvas id="gapDonut"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Overall Compliance Coverage</div>
+      <div class="chart-wrap" style="height:185px;"><canvas id="coverageDonut"></canvas></div>
+      <div style="text-align:center;margin-top:10px;">
+        <div style="font-size:11px;color:var(--muted);">Target for partner onboarding: <strong style="color:var(--accent);">80%</strong></div>
+        <div style="font-size:11px;color:var(--gap);margin-top:3px;">Current gap to target: <strong>33 percentage points</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Remediation Timeline</div>
+      <div class="chart-wrap" style="height:185px;"><canvas id='timelineBar'></canvas></div>
+      <div style="margin-top:10px;font-size:10px;color:var(--muted);">
+        ⚠ Partner onboarding paused pending Phase 1 completion
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROL GAP TABLE -->
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-title" style="margin-bottom:14px;">ISO 27001:2022 Control Gap Assessment — VAI AWS Platform</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Control Ref</th>
+            <th>Control Name</th>
+            <th>Theme</th>
+            <th>VAI Finding</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Recommended Action</th>
+            <th>Timeline</th>
+          </tr>
+        </thead>
+        <tbody id="controlBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-title" style="margin-bottom:14px;">Key Remediation Recommendations</div>
+    <div class="rec-grid">
+      <div class="rec-card" style="border-left-color:var(--gap);">
+        <div class="rec-title" style="color:var(--gap);">1. Implement MFA and Least-Privilege IAM (A.5.15 + A.5.17)</div>
+        <div class="rec-body">Unauthorised access to the learner database is the highest-scored risk at 20. MFA across all AWS accounts and IAM least-privilege enforcement must be completed within 7 days before any partner onboarding.</div>
+        <div class="rec-tag" style="color:var(--gap);">PHASE 1 // 0–7 DAYS // CRITICAL</div>
+      </div>
+      <div class="rec-card" style="border-left-color:var(--gap);">
+        <div class="rec-title" style="color:var(--gap);">2. Enable AWS GuardDuty and Patch All EC2 Instances (A.8.7)</div>
+        <div class="rec-body">Ransomware risk scored 20. GuardDuty activation and a full EC2 patch cycle must be completed immediately. Unpatched infrastructure is the primary attack vector for cloud ransomware campaigns.</div>
+        <div class="rec-tag" style="color:var(--gap);">PHASE 1 // 0–14 DAYS // CRITICAL</div>
+      </div>
+      <div class="rec-card" style="border-left-color:var(--partial);">
+        <div class="rec-title" style="color:var(--partial);">3. Deploy CloudTrail and CloudWatch Logging (A.8.15 + A.8.16)</div>
+        <div class="rec-body">No logging is currently enabled across AWS regions. CloudTrail and CloudWatch must be configured to provide audit trail coverage. Without this, incident detection and forensic investigation are impossible.</div>
+        <div class="rec-tag" style="color:var(--partial);">PHASE 2 // 30–60 DAYS // HIGH</div>
+      </div>
+      <div class="rec-card" style="border-left-color:var(--partial);">
+        <div class="rec-title" style="color:var(--partial);">4. Complete Vendor Security Questionnaires and DPAs (A.5.19)</div>
+        <div class="rec-body">Third-party vendors with access to learner PII have not been formally assessed. Data Processing Agreements and vendor security questionnaires must be completed before partner onboarding proceeds.</div>
+        <div class="rec-tag" style="color:var(--partial);">PHASE 3 // 60–90 DAYS // HIGH</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">VAI // ISO 27001:2022 Gap Analysis // GRC Analyst: Taiwo Johnson // February 2026</div>
+    <div class="footer-right">Framework: ISO 27001:2022 (93 controls) · NIST CSF</div>
+  </div>
+</div>
+
+<script>
+const controls = [
+  {ref:'A.5.15',name:'Access Control',theme:'Organisational',finding:'No MFA on AWS or platform accounts. IAM roles overly permissive.',status:'Gap',priority:'High',action:'Enforce MFA on all accounts; implement least-privilege IAM roles',timeline:'0–7 days'},
+  {ref:'A.5.17',name:'Authentication Information',theme:'Organisational',finding:'Weak password policy in place; no enforcement of complexity rules.',status:'Partial',priority:'High',action:'Force strong password policy; integrate with AWS IAM password policy',timeline:'0–14 days'},
+  {ref:'A.5.19',name:'Information Security in Supplier Relationships',theme:'Organisational',finding:'No vendor security questionnaires or DPAs completed for third parties.',status:'Gap',priority:'High',action:'Complete vendor security questionnaires; execute DPAs before partner onboarding',timeline:'60–90 days'},
+  {ref:'A.5.23',name:'Information Security for Cloud Services',theme:'Organisational',finding:'Cloud security policy exists but not enforced via IaC or CSPM tooling.',status:'Partial',priority:'Medium',action:'Deploy CSPM tool; enforce cloud security policy via infrastructure-as-code',timeline:'30–60 days'},
+  {ref:'A.5.24',name:'Information Security Incident Management',theme:'Organisational',finding:'Incident response plan not formally documented for AWS environment.',status:'Gap',priority:'High',action:'Document IR plan covering AWS-specific scenarios; assign incident roles',timeline:'30–60 days'},
+  {ref:'A.6.1',name:'Screening',theme:'People',finding:'Staff background checks not consistently applied across all roles.',status:'Partial',priority:'Medium',action:'Standardise background check process for all staff with data access',timeline:'30–60 days'},
+  {ref:'A.6.3',name:'Information Security Awareness and Training',theme:'People',finding:'No phishing simulation or security awareness training programme in place.',status:'Gap',priority:'High',action:'Launch phishing simulation; mandatory annual security awareness training',timeline:'0–30 days'},
+  {ref:'A.6.5',name:'Responsibilities After Termination',theme:'People',finding:'Offboarding process does not include timely revocation of AWS access.',status:'Implemented',priority:'Low',action:'Access revocation procedure documented and followed consistently',timeline:'Complete'},
+  {ref:'A.7.1',name:'Physical Security Perimeters',theme:'Physical',finding:'AWS is cloud-hosted; physical perimeter controls managed by AWS.',status:'Implemented',priority:'Low',action:'Review AWS shared responsibility model; document scope boundary',timeline:'Complete'},
+  {ref:'A.7.9',name:'Security of Assets Off-Premises',theme:'Physical',finding:'Staff laptops used for admin access have no MDM or endpoint protection.',status:'Gap',priority:'High',action:'Deploy endpoint protection and MDM on all admin devices',timeline:'0–30 days'},
+  {ref:'A.8.7',name:'Protection Against Malware',theme:'Technological',finding:'GuardDuty not enabled. No anti-malware on EC2 instances.',status:'Gap',priority:'High',action:'Enable GuardDuty; deploy anti-malware on all EC2 instances; patch cycle monthly',timeline:'0–14 days'},
+  {ref:'A.8.9',name:'Configuration Management',theme:'Technological',finding:'S3 buckets have public access enabled. No config baseline enforced.',status:'Gap',priority:'High',action:'Block all S3 public access at account level; deploy Amazon Macie',timeline:'0–14 days'},
+  {ref:'A.8.15',name:'Logging',theme:'Technological',finding:'CloudTrail not enabled across all AWS regions.',status:'Gap',priority:'High',action:'Enable CloudTrail in all regions; configure log retention and integrity',timeline:'0–30 days'},
+  {ref:'A.8.24',name:'Use of Cryptography',theme:'Technological',finding:'KMS encryption enabled on some RDS instances but not all EBS volumes.',status:'Partial',priority:'Medium',action:'Enable KMS encryption on all RDS, EBS, and S3 buckets; enforce TLS',timeline:'0–14 days'},
+  {ref:'A.8.26',name:'Application Security Requirements',theme:'Technological',finding:'No WAF deployed on API endpoints. OWASP Top 10 not addressed.',status:'Gap',priority:'High',action:'Deploy AWS WAF with OWASP ruleset on all API Gateway endpoints',timeline:'0–14 days'},
+];
+
+const themeBadge = {Organisational:'b-org',People:'b-people',Physical:'b-physical',Technological:'b-tech'};
+const statusBadge = {Implemented:'b-impl',Partial:'b-partial',Gap:'b-gap'};
+const priorityClass = {High:'priority-high',Medium:'priority-med',Low:'priority-low'};
+
+let filtered = [...controls];
+
+function renderTable(data){
+  document.getElementById('controlBody').innerHTML = data.map(c=>`
+    <tr>
+      <td class="ctrl-id">${c.ref}</td>
+      <td style="font-weight:500;max-width:150px;">${c.name}</td>
+      <td><span class="badge ${themeBadge[c.theme]}">${c.theme}</span></td>
+      <td style="max-width:200px;color:var(--muted);font-size:11px;">${c.finding}</td>
+      <td><span class="badge ${statusBadge[c.status]}">${c.status}</span></td>
+      <td class="${priorityClass[c.priority]}">${c.priority}</td>
+      <td style="max-width:180px;font-size:11px;">${c.action}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap;color:var(--accent);">${c.timeline}</td>
+    </tr>`).join('');
+}
+
+function updateKPIs(data){
+  document.getElementById('kImpl').textContent = data.filter(c=>c.status==='Implemented').length;
+  document.getElementById('kPartial').textContent = data.filter(c=>c.status==='Partial').length;
+  document.getElementById('kGap').textContent = data.filter(c=>c.status==='Gap').length;
+  document.getElementById('fCount').textContent = `${data.length} controls shown`;
+}
+
+function applyFilters(){
+  const th = document.getElementById('fTheme').value;
+  const st = document.getElementById('fStatus').value;
+  const pr = document.getElementById('fPriority').value;
+  filtered = controls.filter(c=>
+    (th==='All'||c.theme===th)&&
+    (st==='All'||c.status===st)&&
+    (pr==='All'||c.priority===pr)
+  );
+  renderTable(filtered);
+  updateKPIs(filtered);
+}
+
+renderTable(controls);
+updateKPIs(controls);
+
+// RADAR
+new Chart(document.getElementById('radarChart'),{
+  type:'radar',
+  data:{
+    labels:['Organisational\n(A.5)','People\n(A.6)','Physical\n(A.7)','Technological\n(A.8)'],
+    datasets:[
+      {label:'Current Coverage',data:[42,60,33,50],backgroundColor:'rgba(30,79,194,0.15)',borderColor:'rgba(30,79,194,0.8)',borderWidth:2,pointBackgroundColor:'#1e4fc2',pointRadius:5},
+      {label:'Target',data:[100,100,100,100],backgroundColor:'rgba(0,0,0,0.04)',borderColor:'rgba(0,0,0,0.15)',borderWidth:1.5,borderDash:[5,5],pointRadius:3,pointBackgroundColor:'rgba(0,0,0,0.2)'}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    scales:{r:{min:0,max:100,ticks:{stepSize:25,font:{size:9},color:'#9ba4c0'},grid:{color:'rgba(0,0,0,0.07)'},pointLabels:{font:{size:10},color:'#3a4460'},angleLines:{color:'rgba(0,0,0,0.07)'}}},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`${c.dataset.label}: ${c.raw}%`}}}
+  }
+});
+
+// STACKED BAR
+new Chart(document.getElementById('stackedBar'),{
+  type:'bar',
+  data:{
+    labels:['Organisational','People','Physical','Technological'],
+    datasets:[
+      {label:'Implemented',data:[2,2,1,2],backgroundColor:'rgba(46,125,94,0.8)',borderRadius:3},
+      {label:'Partial',data:[2,1,0,1],backgroundColor:'rgba(212,134,10,0.8)'},
+      {label:'Gap',data:[3,1,1,5],backgroundColor:'rgba(192,57,43,0.8)',borderRadius:3}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`${c.dataset.label}: ${c.raw} controls`}}},
+    scales:{
+      x:{stacked:true,grid:{display:false},ticks:{font:{size:10},color:'#6b7a99'}},
+      y:{stacked:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{stepSize:2,font:{size:9},color:'#6b7a99'},title:{display:true,text:'Controls',font:{size:9},color:'#6b7a99'}}
+    }
+  }
+});
+
+// GAP DONUT
+new Chart(document.getElementById('gapDonut'),{
+  type:'doughnut',
+  data:{labels:['High Priority Gaps','Medium Priority Gaps'],datasets:[{data:[4,2],backgroundColor:['#c0392b','#d4860a'],borderColor:'#fff',borderWidth:2,hoverOffset:4}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`${c.label}: ${c.raw}`}}}}
+});
+
+// COVERAGE DONUT
+new Chart(document.getElementById('coverageDonut'),{
+  type:'doughnut',
+  data:{labels:['Implemented','Partial','Gap'],datasets:[{data:[5,4,6],backgroundColor:['#2e7d5e','#d4860a','#c0392b'],borderColor:'#fff',borderWidth:2,hoverOffset:4}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:10}},tooltip:{callbacks:{label:(c)=>`${c.label}: ${c.raw} controls (${Math.round(c.raw/15*100)}%)`}}}}
+});
+
+// TIMELINE BAR
+new Chart(document.getElementById('timelineBar'),{
+  type:'bar',
+  data:{
+    labels:['0–7 days','0–14 days','0–30 days','30–60 days','60–90 days'],
+    datasets:[{label:'Controls to remediate',data:[1,4,3,3,2],backgroundColor:['#c0392b','#c0392b','#d4860a','#d4860a','#1e4fc2'],borderRadius:4,borderSkipped:false}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`${c.raw} control${c.raw!==1?'s':''} due`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:9},color:'#6b7a99'}},
+      y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{stepSize:1,font:{size:9},color:'#6b7a99'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
