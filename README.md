@@ -20,9 +20,11 @@
 
 ## 📋 Executive Summary
 
-Victor Akinode Initiatives (VAI) operates a digital learning platform hosted on AWS, serving learners, mentors, and paying customers across multiple regions. With international partner onboarding planned, VAI's leadership commissioned a cybersecurity risk and ISO 27001:2022 compliance gap assessment to determine organisational readiness.
+This is a fictional, simulated portfolio scenario. Victor Akinode Initiatives (VAI), its AWS environment, stakeholders, and assessment evidence are illustrative and do not represent a real client or commissioned engagement.
 
-This dashboard presents the findings of that assessment. **15 ISO 27001:2022 controls** were assessed across all 4 control themes. The assessment identified:
+The scenario models a digital learning platform hosted on AWS, serving learners, mentors, and paying customers across multiple regions. It assumes that international partner onboarding is planned and uses that business context to frame a cybersecurity risk and ISO 27001:2022 gap-analysis exercise.
+
+This dashboard presents the simulated assessment results. **15 ISO 27001:2022 controls** were assessed across all 4 control themes. The assessment identified:
 
 - **47% overall compliance coverage** - below the threshold required for partner onboarding
 - **6 critical control gaps** requiring immediate remediation
@@ -77,7 +79,7 @@ All risks are scored using a **5×5 likelihood and impact matrix** producing a r
 | 1 | Negligible | No meaningful impact on learners, operations, or regulatory position |
 | 2 | Minor | Limited impact - internal resolution, minor reputational effect |
 | 3 | Moderate | Significant impact - regulatory notification may be required, moderate data exposure |
-| 4 | Major | Serious impact - NDPA/GDPR breach notification required, significant learner data exposure, partner onboarding blocked |
+| 4 | Major | Serious impact - may trigger NDPA or GDPR breach-notification duties depending on the applicable jurisdiction and statutory risk threshold; significant learner data exposure; partner onboarding blocked |
 | 5 | Critical | Catastrophic - mass learner data breach, regulatory sanction, platform shutdown, irreversible reputational damage |
 
 ### Risk Rating Matrix
@@ -93,7 +95,7 @@ All risks are scored using a **5×5 likelihood and impact matrix** producing a r
 | Risk | Likelihood | Impact | Score | Rationale |
 |---|---|---|---|---|
 | Unauthorised access to learner database (RDS) | 4 - Likely | 5 - Critical | 20 | No MFA on IAM accounts with database access; public RDS endpoint identified; learner PII and payment data directly exposed |
-| No logging or monitoring across AWS regions | 5 - Almost Certain | 4 - Major | 20 | CloudTrail disabled in multiple regions; GuardDuty not enabled; breach would be undetectable - NDPA 72-hour notification obligation cannot be met |
+| No logging or monitoring across AWS regions | 5 - Almost Certain | 4 - Major | 20 | CloudTrail disabled in multiple regions; GuardDuty not enabled; these gaps could delay detection and investigation. Under NDPA 2023 section 40(2), a controller must notify the Commission within 72 hours of becoming aware of a breach likely to result in a risk to individuals' rights and freedoms. Delayed detection can therefore increase the risk of delayed notification |
 | Unpatched EC2 instances with known CVEs | 4 - Likely | 5 - Critical | 20 | Patch cycle not documented; 3 EC2 instances running OS versions with publicly available exploit code; direct path to application compromise |
 | No WAF on API endpoints | 4 - Likely | 4 - Major | 16 | API endpoints publicly accessible without WAF; OWASP Top 10 vulnerabilities including SQL injection and broken authentication untested and unmitigated |
 | Staff laptops with no endpoint protection or MDM | 4 - Likely | 4 - Major | 16 | 100% of staff work remotely on unmanaged personal devices; no EDR, no MDM, no disk encryption verified - credential theft and data exfiltration risk |
