@@ -192,13 +192,13 @@ All risks are scored using a **5×5 likelihood and impact matrix** producing a r
 | `Full dashboard.jpeg` | Complete compliance gap dashboard overview |
 | `Radar chart close-up.jpeg` | Coverage radar across all 4 ISO 27001:2022 themes |
 | `Control table.jpeg` | Full 15-control gap assessment with findings and actions |
-| `vai_iso27001_gap_analysis_dashboard.html` | Open in browser for interactive dashboard |
+| `index.html` | Open in browser for interactive dashboard |
 
 ---
 
 ## 🚀 How to Use
 
-1. Open `vai_iso27001_gap_analysis_dashboard.html` in any web browser
+1. Open `index.html` in any web browser
 2. Use filters to view controls by theme, status, or priority
 3. Review the radar chart for coverage across all 4 ISO 27001:2022 themes
 4. Browse the control table for detailed findings and recommended actions
